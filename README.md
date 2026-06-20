@@ -4,6 +4,8 @@
 
 **Hunt Platform:** hunt.lognpacific.com | **Tenant:** lognpacific.org | **Hunt Window:** June 10–20, 2026 (UTC) | **Analyst:** Crypto
 
+![Attack Visualization — LOG(N) Pacific Hunt 08 Second Vector](threat_hunt_viz.png)
+
 ---
 
 ## Executive Summary
