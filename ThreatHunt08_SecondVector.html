@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THREAT HUNT 08 // SECOND VECTOR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --green: #00ff41;
+    --cyan: #00d8ff;
+    --red: #ff003c;
+    --amber: #ffb700;
+    --dim: #004d14;
+    --bg: #050a05;
+    --bg2: #0a120a;
+    --border: #00ff4133;
+    --border-bright: #00ff4166;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* HEADER */
+  .header {
+    text-align: center;
+    border: 1px solid var(--border-bright);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    position: relative;
+    background: linear-gradient(180deg, #001a0622 0%, transparent 100%);
+  }
+
+  .header::before, .header::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    border-color: var(--green);
+    border-style: solid;
+  }
+  .header::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+  .header::after  { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+  .ascii-art {
+    font-size: 11px;
+    line-height: 1.2;
+    color: var(--dim);
+    margin-bottom: 1rem;
+    white-space: pre;
+  }
+
+  .title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(18px, 4vw, 32px);
+    font-weight: 900;
+    color: var(--green);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px var(--green), 0 0 40px #00ff4144;
+  }
+
+  .subtitle {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--cyan);
+    margin-top: 0.5rem;
+    opacity: 0.8;
+  }
+
+  .meta-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    font-size: 12px;
+    color: #00ff4188;
+  }
+
+  .meta-item span { color: var(--cyan); }
+
+  /* BLINK */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .cursor { display: inline-block; animation: blink 1s step-end infinite; }
+
+  /* SECTIONS */
+  .section {
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+    background: var(--bg2);
+    position: relative;
+  }
+
+  .section-header {
+    background: #001a06;
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-icon {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    flex-shrink: 0;
+  }
+  .section-icon.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .section-icon.cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .section-icon.amber { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--green);
+    text-transform: uppercase;
+  }
+
+  .section-body { padding: 1.25rem 1rem; }
+
+  /* EXEC SUMMARY */
+  .summary-text {
+    color: #a0ffa0;
+    line-height: 1.8;
+    border-left: 2px solid var(--green);
+    padding-left: 1rem;
+  }
+
+  /* STAT CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    border: 1px solid var(--border-bright);
+    padding: 1rem;
+    text-align: center;
+    background: #001a0633;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  .stat-card.danger::after { background: var(--red); box-shadow: 0 0 8px var(--red); }
+  .stat-card.cyan::after   { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .stat-card.amber::after  { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+
+  .stat-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--green);
+    text-shadow: 0 0 12px var(--green);
+  }
+  .stat-card.danger .stat-num { color: var(--red); text-shadow: 0 0 12px var(--red); }
+  .stat-card.cyan .stat-num   { color: var(--cyan); text-shadow: 0 0 12px var(--cyan); }
+  .stat-card.amber .stat-num  { color: var(--amber); text-shadow: 0 0 12px var(--amber); }
+
+  .stat-label { font-size: 10px; letter-spacing: 2px; color: #00ff4166; margin-top: 0.25rem; }
+
+  /* TIMELINE */
+  .timeline { position: relative; padding-left: 2rem; }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, var(--green) 10%, var(--green) 90%, transparent);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    background: #001a0620;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px; height: 10px;
+    border: 1px solid var(--green);
+    background: var(--bg);
+    box-shadow: 0 0 6px var(--green);
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .tl-time {
+    font-size: 11px;
+    color: var(--cyan);
+    margin-bottom: 0.25rem;
+    letter-spacing: 1px;
+  }
+
+  .tl-event {
+    color: #c0ffc0;
+    font-size: 13px;
+  }
+
+  .tl-table { font-size: 11px; color: #00ff4166; margin-top: 0.25rem; }
+
+  /* IOC TABLE */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  th {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--cyan);
+    background: #001a2a33;
+  }
+
+  td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: #a0ffa0;
+    vertical-align: top;
+  }
+
+  tr:hover td { background: #00ff4108; }
+
+  .ioc-val {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--green);
+    word-break: break-all;
+  }
+
+  /* LOG SOURCE BAR */
+  .log-source {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-source:last-child { border-bottom: none; }
+
+  .log-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--cyan);
+    min-width: 24px;
+  }
+
+  .log-name {
+    min-width: 260px;
+    color: var(--green);
+    font-size: 13px;
+  }
+
+  .log-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--dim);
+    border-radius: 0;
+    overflow: hidden;
+  }
+
+  .log-bar {
+    height: 100%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    transition: width 1s ease;
+  }
+
+  .log-count {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--amber);
+    min-width: 48px;
+    text-align: right;
+  }
+
+  /* MITRE */
+  .mitre-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .mitre-item {
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    background: #001a0620;
+  }
+
+  .mitre-tactic {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    margin-bottom: 0.25rem;
+  }
+
+  .mitre-id {
+    display: inline-block;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 1px 6px;
+    margin-right: 6px;
+  }
+
+  .mitre-name { color: #c0ffc0; font-size: 13px; }
+  .mitre-detail { color: #00ff4166; font-size: 11px; margin-top: 0.25rem; }
+
+  /* GAPS */
+  .gap-item {
+    border-left: 3px solid var(--red);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: #1a000520;
+  }
+
+  .gap-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--red);
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+  }
+
+  .gap-body { color: #a0ffa0; font-size: 13px; margin-bottom: 0.5rem; }
+
+  .gap-fix {
+    color: var(--green);
+    font-size: 12px;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--border);
+    background: #001a0633;
+    margin-top: 0.5rem;
+  }
+
+  .gap-fix::before { content: 'FIX> '; color: var(--cyan); }
+
+  /* KQL BLOCKS */
+  .kql-block {
+    background: #000d00;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .kql-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--cyan);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .kql-label::before {
+    content: '//';
+    color: #004a5a;
+  }
+
+  .kw { color: var(--cyan); }
+  .fn { color: #88ffcc; }
+  .str { color: var(--amber); }
+  .cmt { color: #004a5a; }
+  .op { color: var(--green); }
+
+  /* CONTAINMENT */
+  .contain-list { list-style: none; }
+
+  .contain-list li {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 1rem;
+    align-items: baseline;
+    font-size: 13px;
+    color: #a0ffa0;
+  }
+
+  .step-num {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--green);
+    min-width: 28px;
+    text-shadow: 0 0 6px var(--green);
+  }
+
+  /* LESSONS */
+  .lesson {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .lesson:last-child { border-bottom: none; }
+
+  .lesson-arrow { color: var(--green); font-size: 18px; margin-top: -2px; }
+  .lesson-text { color: #a0ffa0; font-size: 13px; line-height: 1.7; }
+  .lesson-text strong { color: var(--green); font-weight: normal; }
+
+  /* FOOTER */
+  .footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 11px;
+    color: #00ff4133;
+    letter-spacing: 2px;
+    border-top: 1px solid var(--border);
+    margin-top: 2rem;
+  }
+
+  /* SCAN ANIMATION */
+  @keyframes scan {
+    0% { transform: translateY(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(100vh); opacity: 0; }
+  }
+
+  .scan-line {
+    position: fixed;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.3;
+  }
+
+  @keyframes flicker {
+    0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.8} 95%{opacity:1} 97%{opacity:0.9}
+  }
+
+  .header { animation: flicker 8s infinite; }
+
+  @media (max-width: 600px) {
+    .log-name { min-width: 160px; font-size: 11px; }
+    .ascii-art { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scan-line"></div>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <pre class="ascii-art">
+ ██████████████████████████████████████████████████
+ ██  LOG(N) PACIFIC  //  CYBER RANGE  //  HUNT 08 ██
+ ██████████████████████████████████████████████████</pre>
+    <div class="title">SECOND VECTOR</div>
+    <div class="subtitle">THREAT HUNT REPORT // BEC + CLOUD ABUSE</div>
+    <div class="meta-row">
+      <div class="meta-item">ANALYST: <span>CRYPTO</span></div>
+      <div class="meta-item">DATE: <span>2026-06-20</span></div>
+      <div class="meta-item">TENANT: <span>lognpacific.org</span></div>
+      <div class="meta-item">PLATFORM: <span>hunt.lognpacific.com</span></div>
+      <div class="meta-item">STATUS: <span>COMPLETE<span class="cursor">_</span></span></div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats-grid">
+    <div class="stat-card danger">
+      <div class="stat-num">1</div>
+      <div class="stat-label">COMPROMISED ACCOUNT</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">7</div>
+      <div class="stat-label">LOG SOURCES HIT</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-num">146</div>
+      <div class="stat-label">GRAPH API CALLS</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-num">6</div>
+      <div class="stat-label">MITRE TECHNIQUES</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-num">3</div>
+      <div class="stat-label">CONTROL GAPS</div>
+    </div>
+  </div>
+
+  <!-- EXECUTIVE SUMMARY -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon"></div>
+      <div class="section-title">// EXECUTIVE SUMMARY</div>
+    </div>
+    <div class="section-body">
+      <p class="summary-text">
+        A Business Email Compromise (BEC) attack targeted finance user <strong>m.smith@lognpacific.org</strong>
+        from external IP <strong>103.69.224.136</strong>. The attacker authenticated via legacy protocols that bypassed
+        Conditional Access policies, established inbox forwarding rules, planted a malicious Power Automate flow,
+        and abused the Microsoft Graph API to exfiltrate financial data to <strong>merovingian1337@proton.me</strong>.
+        The attacker's IP footprint spanned <strong>7 distinct log sources</strong> across the Microsoft 365 and Entra ID stack.
+      </p>
+    </div>
+  </div>
+
+  <!-- ATTACK TIMELINE -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon cyan"></div>
+      <div class="section-title">// ATTACK TIMELINE</div>
+    </div>
+    <div class="section-body">
+      <div class="timeline">
+
+        <div class="timeline-item">
+          <div class="tl-time">2026-06-11 ~03:30 UTC</div>
+          <div class="tl-event">Attacker authenticates to m.smith@lognpacific.org from 103.69.224.136 via legacy auth (OWA/browser). ConditionalAccessStatus = notApplied. AuthenticationProtocol = none.</div>
+          <div class="tl-table">SOURCE: SigninLogs // AADNonInteractiveUserSignInLogs</div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="tl-time">2026-06-11 ~03:32 UTC</div>
+          <div class="tl-event">Inbox forwarding rule created via OWA. All mail forwarded to external address: merovingian1337@proton.me</div>
+          <div class="tl-table">SOURCE: OfficeActivity // AuditLogs</div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="tl-time">2026-06-11 ~03:35 UTC</div>
+          <div class="tl-event">Power Automate flow created via Microsoft Flow Portal using compromised delegated credentials. AppId: 7ab7862c-4c57-491e-8a45-d52a7e023983</div>
+          <div class="tl-table">SOURCE: CloudAppEvents</div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="tl-time">2026-06-11 ~12:41 UTC</div>
+          <div class="tl-event">Flow triggers 146 Graph API calls. Reads mailbox content and dispatches exfiltration email. Calls route to destination IP: 20.150.129.194</div>
+          <div class="tl-table">SOURCE: MicrosoftGraphActivityLogs</div>
+        </div>
+
+        <div class="timeline-item">
+          <div class="tl-time">2026-06-11 ~12:41 UTC</div>
+          <div class="tl-event">Email exfiltrated. Subject: "FW: Updated Banking Details - ..." Recipient: merovingian1337@proton.me. Delivered.</div>
+          <div class="tl-table">SOURCE: EmailEvents</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- IOCs -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon red"></div>
+      <div class="section-title">// INDICATORS OF COMPROMISE</div>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead>
+          <tr>
+            <th>TYPE</th>
+            <th>VALUE</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Attacker Source IP</td><td><span class="ioc-val">103.69.224.136</span></td></tr>
+          <tr><td>Compromised Account</td><td><span class="ioc-val">m.smith@lognpacific.org</span></td></tr>
+          <tr><td>Exfil Recipient</td><td><span class="ioc-val">merovingian1337@proton.me</span></td></tr>
+          <tr><td>Exfil Destination IP</td><td><span class="ioc-val">20.150.129.194</span></td></tr>
+          <tr><td>Power Automate AppId</td><td><span class="ioc-val">7ab7862c-4c57-491e-8a45-d52a7e023983</span></td></tr>
+          <tr><td>Abused Cloud Service</td><td><span class="ioc-val">Microsoft Power Automate</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- LOG SOURCES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon"></div>
+      <div class="section-title">// LOG SOURCE COVERAGE — 7 SOURCES</div>
+    </div>
+    <div class="section-body">
+      <div class="log-source">
+        <span class="log-num">01</span>
+        <span class="log-name">SigninLogs</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:38%"></div></div>
+        <span class="log-count">56</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">02</span>
+        <span class="log-name">AADNonInteractiveUserSignInLogs</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:20%"></div></div>
+        <span class="log-count">—</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">03</span>
+        <span class="log-name">AuditLogs</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:10%"></div></div>
+        <span class="log-count">—</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">04</span>
+        <span class="log-name">OfficeActivity</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:20%"></div></div>
+        <span class="log-count">29</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">05</span>
+        <span class="log-name">MicrosoftGraphActivityLogs</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:100%"></div></div>
+        <span class="log-count">146</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">06</span>
+        <span class="log-name">CloudAppEvents</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:24%"></div></div>
+        <span class="log-count">35</span>
+      </div>
+      <div class="log-source">
+        <span class="log-num">07</span>
+        <span class="log-name">EmailEvents</span>
+        <div class="log-bar-wrap"><div class="log-bar" style="width:1%"></div></div>
+        <span class="log-count">1</span>
+      </div>
+      <p style="font-size:11px; color:#00ff4155; margin-top:1rem; border-left:2px solid #00ff4133; padding-left:0.75rem;">
+        HUNT LESSON: Initial union query missed AADNonInteractiveUserSignInLogs (token-refresh sign-ins) and AuditLogs.
+        Run <span style="color:var(--cyan)">search "103.69.224.136"</span> across all workspace tables first — targeted per-table queries leave blind spots.
+      </p>
+    </div>
+  </div>
+
+  <!-- MITRE ATT&CK -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon amber"></div>
+      <div class="section-title">// MITRE ATT&CK MAPPING</div>
+    </div>
+    <div class="section-body">
+      <div class="mitre-grid">
+        <div class="mitre-item">
+          <div class="mitre-tactic">INITIAL ACCESS</div>
+          <span class="mitre-id">T1078</span><span class="mitre-name">Valid Accounts</span>
+          <div class="mitre-detail">Compromised M365 credentials for m.smith</div>
+        </div>
+        <div class="mitre-item">
+          <div class="mitre-tactic">DEFENSE EVASION</div>
+          <span class="mitre-id">T1562</span><span class="mitre-name">Impair Defenses</span>
+          <div class="mitre-detail">Legacy auth bypassed Conditional Access (notApplied)</div>
+        </div>
+        <div class="mitre-item">
+          <div class="mitre-tactic">PERSISTENCE</div>
+          <span class="mitre-id">T1137</span><span class="mitre-name">Office Application Startup</span>
+          <div class="mitre-detail">OWA inbox forwarding rule created</div>
+        </div>
+        <div class="mitre-item">
+          <div class="mitre-tactic">COLLECTION</div>
+          <span class="mitre-id">T1114.003</span><span class="mitre-name">Email Forwarding Rule</span>
+          <div class="mitre-detail">Mail auto-forwarded to external address</div>
+        </div>
+        <div class="mitre-item">
+          <div class="mitre-tactic">EXECUTION</div>
+          <span class="mitre-id">T1651</span><span class="mitre-name">Cloud Administration Command</span>
+          <div class="mitre-detail">Power Automate flow created and triggered</div>
+        </div>
+        <div class="mitre-item">
+          <div class="mitre-tactic">EXFILTRATION</div>
+          <span class="mitre-id">T1567</span><span class="mitre-name">Exfiltration Over Web Service</span>
+          <div class="mitre-detail">Graph API used to read and forward mail</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROL GAPS -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon red"></div>
+      <div class="section-title">// CONTROL GAPS IDENTIFIED</div>
+    </div>
+    <div class="section-body">
+
+      <div class="gap-item">
+        <div class="gap-title">GAP 01 // CONDITIONAL ACCESS NOT ENFORCED ON LEGACY AUTH</div>
+        <p class="gap-body">All sign-ins from 103.69.224.136 returned ConditionalAccessStatus = "notApplied" with AuthenticationProtocol = "none". Legacy authentication protocols fall completely outside CA policy scope unless explicitly blocked.</p>
+        <div class="gap-fix">Block legacy authentication via Conditional Access policy targeting all users. Use the "Block legacy authentication" template in Entra ID.</div>
+      </div>
+
+      <div class="gap-item">
+        <div class="gap-title">GAP 02 // POWER AUTOMATE DLP GOVERNANCE GAP</div>
+        <p class="gap-body">Attacker created a fully functional exfiltration flow via Microsoft Power Automate using delegated credentials. No DLP policy blocked the flow from sending to external mail destinations.</p>
+        <div class="gap-fix">Implement Power Platform DLP policies. Restrict Office 365 Mail connector from sending to external business group connectors.</div>
+      </div>
+
+      <div class="gap-item">
+        <div class="gap-title">GAP 03 // SESSION PERSISTENCE AFTER PASSWORD RESET</div>
+        <p class="gap-body">Active refresh tokens survive a password reset. An attacker with a valid token retains full access even after the victim's password is changed — a critical containment gap.</p>
+        <div class="gap-fix">Always revoke active sessions FIRST (Revoke-AzureADUserAllRefreshToken), then reset password. Session revocation is a separate, mandatory step.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- KQL QUERIES -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon cyan"></div>
+      <div class="section-title">// KQL DETECTION QUERIES</div>
+    </div>
+    <div class="section-body">
+
+      <div class="kql-label">BROAD IP PIVOT — ALL SOURCES</div>
+      <div class="kql-block">
+<span class="kw">search</span> <span class="str">"103.69.224.136"</span>
+<span class="op">|</span> <span class="kw">where</span> TimeGenerated <span class="kw">between</span>(<span class="fn">datetime</span>(<span class="str">2026-06-10T00:00:00Z</span>) .. <span class="fn">datetime</span>(<span class="str">2026-06-20T23:59:59Z</span>))
+<span class="op">|</span> <span class="kw">summarize</span> <span class="fn">count</span>() <span class="kw">by</span> $table
+<span class="op">|</span> <span class="kw">order by</span> count_ <span class="kw">desc</span>
+      </div>
+
+      <div class="kql-label">SIGN-IN ACTIVITY — LEGACY AUTH DETECTION</div>
+      <div class="kql-block">
+SigninLogs
+<span class="op">|</span> <span class="kw">where</span> TimeGenerated <span class="kw">between</span>(<span class="fn">datetime</span>(<span class="str">2026-06-10T00:00:00Z</span>) .. <span class="fn">datetime</span>(<span class="str">2026-06-20T23:59:59Z</span>))
+<span class="op">|</span> <span class="kw">where</span> IPAddress == <span class="str">"103.69.224.136"</span>
+<span class="op">|</span> <span class="kw">project</span> TimeGenerated, UserPrincipalName, AppDisplayName,
+          ConditionalAccessStatus, AuthenticationProtocol, ResultType
+<span class="op">|</span> <span class="kw">order by</span> TimeGenerated <span class="kw">asc</span>
+      </div>
+
+      <div class="kql-label">POWER AUTOMATE FLOW CREATION</div>
+      <div class="kql-block">
+CloudAppEvents
+<span class="op">|</span> <span class="kw">where</span> TimeGenerated <span class="kw">between</span>(<span class="fn">datetime</span>(<span class="str">2026-06-10T00:00:00Z</span>) .. <span class="fn">datetime</span>(<span class="str">2026-06-20T23:59:59Z</span>))
+<span class="op">|</span> <span class="kw">where</span> IPAddress == <span class="str">"103.69.224.136"</span>
+<span class="op">|</span> <span class="kw">where</span> Application == <span class="str">"Microsoft Power Automate"</span>
+<span class="op">|</span> <span class="kw">project</span> TimeGenerated, AccountId, ActionType, Application, AppId, IPAddress
+      </div>
+
+      <div class="kql-label">GRAPH API EXFILTRATION CALLS</div>
+      <div class="kql-block">
+MicrosoftGraphActivityLogs
+<span class="op">|</span> <span class="kw">where</span> TimeGenerated <span class="kw">between</span>(<span class="fn">datetime</span>(<span class="str">2026-06-10T00:00:00Z</span>) .. <span class="fn">datetime</span>(<span class="str">2026-06-20T23:59:59Z</span>))
+<span class="op">|</span> <span class="kw">where</span> IPAddress == <span class="str">"103.69.224.136"</span>
+<span class="op">|</span> <span class="kw">project</span> TimeGenerated, UserId, RequestUri, ResponseStatusCode, IPAddress
+<span class="op">|</span> <span class="kw">order by</span> TimeGenerated <span class="kw">asc</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONTAINMENT -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon"></div>
+      <div class="section-title">// CONTAINMENT RUNBOOK</div>
+    </div>
+    <div class="section-body">
+      <ul class="contain-list">
+        <li><span class="step-num">01 &gt;</span> Revoke all active sessions for m.smith — Revoke-AzureADUserAllRefreshToken or Entra ID portal</li>
+        <li><span class="step-num">02 &gt;</span> Reset account password AFTER session revocation</li>
+        <li><span class="step-num">03 &gt;</span> Delete malicious inbox forwarding rule in Exchange Online admin</li>
+        <li><span class="step-num">04 &gt;</span> Disable Power Automate flow in Power Platform admin center. Audit all flows owned by m.smith</li>
+        <li><span class="step-num">05 &gt;</span> Block source IP 103.69.224.136 in Entra ID Named Locations or network edge</li>
+        <li><span class="step-num">06 &gt;</span> Enforce MFA on account before re-enabling access</li>
+        <li><span class="step-num">07 &gt;</span> Block legacy authentication via Conditional Access — "Block legacy authentication" template</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- LESSONS LEARNED -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon amber"></div>
+      <div class="section-title">// LESSONS LEARNED</div>
+    </div>
+    <div class="section-body">
+      <div class="lesson">
+        <span class="lesson-arrow">›</span>
+        <p class="lesson-text"><strong>Run the broad search pivot first.</strong> A targeted union query across manually selected tables missed 2 of 7 sources. The <code style="color:var(--cyan)">search</code> operator across all workspace tables is essential before building targeted queries.</p>
+      </div>
+      <div class="lesson">
+        <span class="lesson-arrow">›</span>
+        <p class="lesson-text"><strong>ConditionalAccessStatus = "notApplied" is the signal.</strong> It means a sign-in occurred completely outside your CA policy scope — legacy auth is a persistent blind spot that bypasses MFA enforcement entirely.</p>
+      </div>
+      <div class="lesson">
+        <span class="lesson-arrow">›</span>
+        <p class="lesson-text"><strong>Power Platform is an exfiltration vector.</strong> Power Automate with delegated user credentials bypasses many email DLP controls. Governance policies on connectors are mandatory, not optional.</p>
+      </div>
+      <div class="lesson">
+        <span class="lesson-arrow">›</span>
+        <p class="lesson-text"><strong>Password reset ≠ containment.</strong> Active refresh tokens survive password resets. Revoke sessions first, then reset — containment is incomplete without both steps, in that order.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    LOG(N) PACIFIC // HUNT 08 // SECOND VECTOR // hunt.lognpacific.com // 2026-06-20
+  </div>
+
+</div>
+</body>
+</html>
